@@ -1,0 +1,70 @@
+# Fleet image build for gitlab.home.xomar.com (xomar cluster).
+#
+# DRAFT TEMPLATE — enable by:
+#   1. Creating a GitLab project (e.g. jdubs/hermes-agent-fleet) on
+#      gitlab.home.xomar.com.
+#   2. Mirroring jdubs/hermes-agent main into it (same pattern as the
+#      j100-mirror job in the j100 GitOps repo).
+#   3. Installing this file as .gitlab-ci.yml in that project.
+# Then every push to main: kaniko builds the base image (pristine upstream
+# Dockerfile) + the fleet overlay (Dockerfile.local) and pushes to harbor.
+# Pods pick up :main via `kubectl rollout restart` (same-tag rule — see
+# scripts/build-harbor.sh header and the hermes-k8s-deploy skill).
+#
+# Runner prerequisites (xomar k8s executor, gitlab-runners ns):
+#   - runner tag: check `kubectl -n gitlab-runners get cm gitlab-runner`
+#     and set the matching tag below
+#   - the kaniko-harbor-config secret (gitlab-runners ns) mounted at
+#     /etc/harbor/dockerconfigjson on the runner pod (kaniko registry auth)
+
+stages: [build]
+
+variables:
+  IMAGE: harbor.home.xomar.com/hermes-agent/hermes-agent
+
+default:
+  tags: [xomar]
+
+kaniko-base:
+  stage: build
+  image:
+    name: gcr.io/kaniko-project/executor:v1.23.2-debug
+    entrypoint: [""]
+  variables:
+    KUBERNETES_CPU_LIMIT: "4"
+    KUBERNETES_MEMORY_LIMIT: "8Gi"
+    KUBERNETES_MEMORY_REQUEST: "2Gi"
+  before_script:
+    - mkdir -p /kaniko/.docker
+    - cp /etc/harbor/dockerconfigjson /kaniko/.docker/config.json
+  script:
+    - >
+      /kaniko/executor
+      --context=.
+      --dockerfile=Dockerfile
+      --destination=${IMAGE}:${CI_COMMIT_SHORT_SHA}
+      --destination=${IMAGE}:base
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
+kaniko-overlay:
+  stage: build
+  image:
+    name: gcr.io/kaniko-project/executor:v1.23.2-debug
+    entrypoint: [""]
+  variables:
+    KUBERNETES_CPU_LIMIT: "2"
+    KUBERNETES_MEMORY_LIMIT: "4Gi"
+    KUBERNETES_MEMORY_REQUEST: "1Gi"
+  before_script:
+    - mkdir -p /kaniko/.docker
+    - cp /etc/harbor/dockerconfigjson /kaniko/.docker/config.json
+  script:
+    - >
+      /kaniko/executor
+      --context=.
+      --dockerfile=Dockerfile.local
+      --destination=${IMAGE}:main
+  needs: [kaniko-base]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
