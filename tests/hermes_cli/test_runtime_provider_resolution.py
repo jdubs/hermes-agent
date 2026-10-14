@@ -691,7 +691,7 @@ def test_real_openai_key_is_never_routed_or_sent_to_openrouter(monkeypatch):
     from hermes_cli.runtime_provider_backends import _resolve_openrouter_runtime
     monkeypatch.setattr(rp, "_get_model_config", dict)
     monkeypatch.setattr("hermes_cli.config.load_config", lambda: {"model": {}})
-    monkeypatch.setattr("agent.bedrock_adapter.has_aws_credentials", lambda: False)
+    monkeypatch.setattr("agent.bedrock_adapter.has_aws_credentials", lambda *_a, **_kw: False)
     for var in ("OPENAI_BASE_URL", "OPENROUTER_BASE_URL", "OPENROUTER_API_KEY", "CUSTOM_BASE_URL"):
         monkeypatch.delenv(var, raising=False)
     monkeypatch.setenv("OPENAI_API_KEY", "sk-proj-real-openai-key")
@@ -1978,7 +1978,7 @@ def _patch_bedrock(monkeypatch, config_default=""):
     monkeypatch.setattr(rp, "resolve_provider", lambda *a, **k: "bedrock")
     monkeypatch.setattr(rp, "_get_model_config", lambda: {"default": config_default})
     monkeypatch.setattr(rp, "load_config", lambda: {"bedrock": {}})
-    monkeypatch.setattr(ba, "has_aws_credentials", lambda: True)
+    monkeypatch.setattr(ba, "has_aws_credentials", lambda *_a, **_kw: True)
     monkeypatch.setattr(ba, "resolve_aws_auth_env_var", lambda: "AWS_PROFILE")
     monkeypatch.setattr(ba, "resolve_bedrock_region", lambda: "eu-north-1")
 
@@ -2349,7 +2349,7 @@ def test_openai_alias_resolves_identically_on_runtime_and_aux_client_paths(monke
     monkeypatch.setattr(aux, "_get_auxiliary_task_config", lambda task: block if task == "background_review" else {})
     monkeypatch.setattr(rp, "_get_model_config", lambda: {"provider": "custom:mylocal", "default": "local-main"})
 
-    aux_provider, aux_model, aux_base, aux_key, _ = aux._resolve_task_provider_model("background_review")
+    aux_provider, _aux_model, aux_base, aux_key, _ = aux._resolve_task_provider_model("background_review")
     runtime = rp.resolve_runtime_provider(requested=block["provider"], target_model=block["model"],
                                           explicit_api_key=block["api_key"], explicit_base_url=block["base_url"])
 
