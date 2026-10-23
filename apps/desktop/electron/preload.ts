@@ -351,6 +351,7 @@ contextBridge.exposeInMainWorld('hermesDesktop', {
   readPluginSource: (filePath: string) => ipcRenderer.invoke('hermes:readPluginSource', filePath),
   selectPaths: options => ipcRenderer.invoke('hermes:selectPaths', options),
   selectSavePath: options => ipcRenderer.invoke('hermes:selectSavePath', options),
+  saveTextFileAs: request => ipcRenderer.invoke('hermes:saveTextFileAs', request),
   writeClipboard: text => ipcRenderer.invoke('hermes:writeClipboard', text),
   readClipboard: () => ipcRenderer.invoke('hermes:readClipboard'),
   saveGatewayFile: payload => ipcRenderer.invoke('hermes:saveGatewayFile', payload),
@@ -359,6 +360,7 @@ contextBridge.exposeInMainWorld('hermesDesktop', {
   contextMenuCopyImage: () => ipcRenderer.invoke('hermes:context-menu:copy-image'),
   contextMenuSpellcheck: action => ipcRenderer.invoke('hermes:context-menu:spellcheck', action),
   contextMenuGuestAddWord: payload => ipcRenderer.invoke('hermes:context-menu:guest-add-word', payload),
+  spellcheckDictionary: (op, word) => ipcRenderer.invoke('hermes:spellcheck:dictionary', { op, word }),
   onContextMenuSpellcheck: callback => {
     const listener = (_event, payload) => callback(payload)
     ipcRenderer.on('hermes:context-menu-spellcheck', listener)
