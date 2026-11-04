@@ -96,15 +96,15 @@ def _resolve_headers(headers_env: Optional[dict[str, str]]) -> dict[str, str]:
     return resolved
 
 
-_SIGNAL_SUFFIXES = ("/v1/traces", "/v1/metrics")
+_SIGNAL_SUFFIXES = ("/v1/traces", "/v1/metrics", "/v1/logs")
 
 
 def _signal_endpoint(endpoint: str, signal: str) -> str:
-    """Rewrite a traces/metrics OTLP path to ``/v1/<signal>``; other paths pass through."""
-    target = f"/v1/{signal}"
+    """Return the base endpoint URL without signal suffixes so OTel SDK can append /v1/<signal>."""
+    endpoint = endpoint.rstrip("/")
     for suffix in _SIGNAL_SUFFIXES:
-        if suffix != target and endpoint.endswith(suffix):
-            return endpoint[: -len(suffix)] + target
+        if endpoint.endswith(suffix):
+            endpoint = endpoint[: -len(suffix)]
     return endpoint
 
 
