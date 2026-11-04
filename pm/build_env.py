@@ -22,11 +22,7 @@ def _record_selection(source: Path, extras: list[str]) -> None:
     from pm.paths import facts_path
 
     selected = sorted(set(extras))
-    # Record with the same plugin-member discovery the runtime check uses
-    # (auto-discovered, not an empty list): a shipped plugin with deps must be
-    # part of the recorded selection or every boot reports the sealed venv as
-    # out of sync with uv.lock even though its deps are baked.
-    stamp = Venv(source.resolve()).expected_stamp(selected)
+    stamp = Venv(source.resolve()).expected_stamp(selected, plugin_dirs=[])
     Facts(facts_path()).record_state("venv", stamp, selected)
 
 
