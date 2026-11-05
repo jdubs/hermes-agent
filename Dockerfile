@@ -82,6 +82,22 @@ RUN apt-get -o Acquire::Retries=3 update && \
     libasound2t64 libatk-bridge2.0-0t64 libatk1.0-0t64 libatspi2.0-0t64 libcairo2 libcups2t64 libdbus-1-3 libgbm1 libglib2.0-0t64 libnspr4 libnss3 libpango-1.0-0 libx11-6 libxcb1 libxcomposite1 libxdamage1 libxext6 libxfixes3 libxkbcommon0 libxrandr2 && \
     rm -rf /var/lib/apt/lists/*
 
+# ArgoCD CLI: pinned static binary (no current-release apt package). Multi-arch
+# via BuildKit's TARGETARCH; sha256 verified per-arch before install. The
+# runtime user cannot fetch tools later (no root, root fs resets on restart).
+ARG TARGETARCH
+ARG ARGOCD_VERSION=3.6.1
+ARG ARGOCD_AMD64_SHA256=46d2fc941071f0a0c36326a67a431d34b1479e1a24737f7b367abc93968beadc
+ARG ARGOCD_ARM64_SHA256=6636e9183de7dba666b673a417986e7ff54dbadd948b2f9f6c83bcf7d33ebb94
+RUN curl -fsSL --retry 3 --retry-all-errors --connect-timeout 15 --max-time 120 \
+      -o /usr/local/bin/argocd \
+      "https://github.com/argoproj/argo-cd/releases/download/v${ARGOCD_VERSION}/argocd-linux-${TARGETARCH}" && \
+    ( [ "$TARGETARCH" = "amd64" ] && echo "${ARGOCD_AMD64_SHA256}  /usr/local/bin/argocd" \
+      || [ "$TARGETARCH" = "arm64" ] && echo "${ARGOCD_ARM64_SHA256}  /usr/local/bin/argocd" \
+      || { echo "unsupported TARGETARCH: ${TARGETARCH}" >&2; exit 1; } ) | sha256sum -c - && \
+    chmod +x /usr/local/bin/argocd && \
+    argocd version --client --short
+
 # Bot Screen (opt-in): PACKAGES["apt"] from tools/bot_desktop/runtime.py plus apt
 # `chromium` for the restricted-userns sandbox fallback. PM already stages
 # pinned full Chromium for both variants; no separate Playwright install.
